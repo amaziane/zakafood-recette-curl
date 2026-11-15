@@ -72,6 +72,14 @@ def main():
         pass
     cmd, args = sys.argv[1], sys.argv[2:]
 
+    if cmd == "notices":  # notices FILE -> messages WooCommerce (erreurs / infos) affichés sur la page
+        with open(args[0], encoding="utf-8", errors="replace") as f:
+            html = f.read()
+        blocks = re.findall(r'class="[^"]*(?:woocommerce-(?:error|info|message)|wc-block-components-notice-banner|cart-empty)[^"]*"[^>]*>(.*?)</(?:ul|div|p)>', html, re.S)
+        txt = [re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", b)).strip() for b in blocks]
+        print(" | ".join(t for t in txt if t)[:400])
+        return
+
     if cmd == "urlenc":
         from urllib.parse import quote
         print(quote(args[0], safe=""))

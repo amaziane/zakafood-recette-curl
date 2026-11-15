@@ -96,7 +96,7 @@ mail_baseline() {
 # expect_mail "libellé" "regex destinataire" "regex sujet"  -> attend jusqu'à MAIL_WAIT s
 expect_mail() {
   local label=$1 rto=$2 rsub=$3 t=0 hit
-  if [ "${MAIL_BASE:--1}" = "-1" ]; then warn "E-mail : $label" "journal SureMails illisible, vérifie la boîte à la main"; return; fi
+  if [ "${MAIL_BASE:--1}" = "-1" ]; then info "E-mail attendu : $label" "à vérifier dans la boîte (journal SureMails non lisible par API)"; return; fi
   while :; do
     mail_fetch
     hit=$($PY mails "$WORK/maillogs.json" "$MAIL_BASE" "$rto" "$rsub" | head -1)
