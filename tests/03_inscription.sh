@@ -35,7 +35,7 @@ register "pas-un-email" "$TEST_VAT" "on"
 has_error && pass "Refus e-mail invalide" || fail "Refus e-mail invalide" "HTTP $HTTP_CODE"
 
 # ---- Inscription réelle ----
-rest GET "/wc/v3/customers?email=$(python3 -c 'import sys,urllib.parse;print(urllib.parse.quote(sys.argv[1]))' "$EMAIL")&role=all"
+rest GET "/wc/v3/customers?email=$($PY urlenc "$EMAIL")&role=all"
 if [ "$REST_CODE" != "200" ]; then die "Accès API admin" "HTTP $REST_CODE : vérifie WP_ADMIN_USER / WP_APP_PASSWORD"; fi
 [ "$(rj 'len(d)')" != "0" ] && die "Compte de test" "$EMAIL existe déjà (lance ./run.sh cleanup ou change TEST_EMAIL)"
 
@@ -49,7 +49,7 @@ logged_in "$J" && warn "Session après inscription" "le compte en attente est co
                || pass "Session après inscription" "pas de connexion tant que le compte n'est pas validé"
 
 sleep 2
-rest GET "/wc/v3/customers?email=$(python3 -c 'import sys,urllib.parse;print(urllib.parse.quote(sys.argv[1]))' "$EMAIL")&role=all"
+rest GET "/wc/v3/customers?email=$($PY urlenc "$EMAIL")&role=all"
 UID_=$(rj 'd[0]["id"]')
 if [ -z "$UID_" ]; then die "Compte créé" "aucun client $EMAIL côté WooCommerce"; fi
 state_set CLIENT_ID "$UID_"
