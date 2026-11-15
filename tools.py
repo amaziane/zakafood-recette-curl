@@ -65,7 +65,17 @@ def out(v):
 
 
 def main():
+    # Windows : sortie UTF-8 et fins de ligne \n (sinon bash récupère des \r parasites)
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", newline="\n")
+    except Exception:
+        pass
     cmd, args = sys.argv[1], sys.argv[2:]
+
+    if cmd == "urlenc":
+        from urllib.parse import quote
+        print(quote(args[0], safe=""))
+        return
 
     if cmd == "field":  # field FILE FORMMATCH NAME -> valeur
         fm = load_form(args[0], args[1])

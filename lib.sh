@@ -7,7 +7,27 @@ if [ ! -f "$ROOT/.env" ]; then
   echo "Fichier .env manquant : cp .env.example .env puis remplis-le." >&2
   exit 1
 fi
-set -a; . "$ROOT/.env"; set +a
+# Lecture du .env ligne par ligne (pas de "source") : espaces, parenthèses, guillemets et fins de ligne Windows tolérés
+while IFS= read -r line || [ -n "$line" ]; do
+  line=${line%$'\r'}
+  case "$line" in ''|\#*) continue;; *=*) ;; *) continue;; esac
+  key=${line%%=*}; key=$(printf '%s' "$key" | tr -d ' ')
+  val=${line#*=}
+  case "$val" in \"*\") val=${val#\"}; val=${val%\"};; \'*\') val=${val#\'}; val=${val%\'};; esac
+  export "$key=$val"
+done < "$ROOT/.env"
+unset line key val
+
+# Python : on cherche un vrai interpréteur (sous Windows, "python3" est souvent un raccourci vers le Microsoft Store)
+PYBIN=""
+for cand in python3 python "py -3"; do
+  if $cand -c 'import sys; sys.exit(0 if sys.version_info[0] == 3 else 1)' >/dev/null 2>&1; then PYBIN=$cand; break; fi
+done
+if [ -z "$PYBIN" ]; then
+  echo "Python 3 introuvable. Sous Windows : winget install Python.Python.3.12 (ou python.org, case « Add to PATH »)," >&2
+  echo "puis Paramètres › Applications › Alias d'exécution : désactive python.exe / python3.exe (Microsoft Store)." >&2
+  exit 1
+fi
 
 BASE_URL="${BASE_URL:-https://zakafood.com}"; BASE_URL="${BASE_URL%/}"
 MAIL_WAIT="${MAIL_WAIT:-90}"
@@ -15,7 +35,7 @@ WORK="$ROOT/.work"; mkdir -p "$WORK"
 STATE="$WORK/state.env"; touch "$STATE"
 RESULTS="$WORK/results.tsv"; touch "$RESULTS"
 UA="ZakaFood-TestSuite/1.0 (curl)"
-PY="python3 $ROOT/tools.py"
+PY="$PYBIN $ROOT/tools.py"
 . "$STATE"
 
 if [ -t 1 ]; then G=$'\e[32m'; R=$'\e[31m'; Y=$'\e[33m'; B=$'\e[36m'; N=$'\e[0m'; else G=; R=; Y=; B=; N=; fi
@@ -35,7 +55,7 @@ state_set() { # state_set CLE VALEUR
 }
 
 need() { command -v "$1" >/dev/null 2>&1 || { echo "Outil requis manquant : $1" >&2; exit 1; }; }
-need curl; need python3
+need curl
 
 # ---------- HTTP ----------
 u()  { case "$1" in http*) echo "$1" ;; *) echo "$BASE_URL$1" ;; esac; }
