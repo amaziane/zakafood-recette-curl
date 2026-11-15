@@ -30,8 +30,8 @@ fi
 req "$J" GET /mon-compte/ "$P"
 grep -q 'woocommerce-MyAccount-navigation' "$P" && pass "Tableau de bord Mon compte" || fail "Tableau de bord Mon compte" "navigation absente"
 for ep in orders edit-address edit-account; do
-  req "$J" GET "/mon-compte/$ep/" "$P"
-  [ "$HTTP_CODE" = "200" ] && pass "Mon compte › $ep" || warn "Mon compte › $ep" "HTTP $HTTP_CODE (slug traduit ?)"
+  req "$J" GET "/mon-compte/$ep/" "$P" -L
+  [ "$HTTP_CODE" = "200" ] && grep -q 'woocommerce-MyAccount-content' "$P" && pass "Mon compte › $ep" || warn "Mon compte › $ep" "HTTP $HTTP_CODE"
 done
 
 req "$J" GET "$(cb /boutique/)" "$P"
@@ -42,10 +42,10 @@ req "$J" GET /panier/ "$P"
 # Mot de passe perdu (sans session)
 L="$WORK/lost.jar"; rm -f "$L"
 req "$L" GET "$(cb /mon-compte/mot-de-passe-perdu/)" "$P"
-N=$($PY field "$P" lost_reset_password woocommerce-lost-password-nonce)
-if [ -n "$N" ]; then
+LPN=$($PY field "$P" lost_reset_password woocommerce-lost-password-nonce)
+if [ -n "$LPN" ]; then
   req "$L" POST /mon-compte/mot-de-passe-perdu/ "$O" --data-urlencode "user_login=$CLIENT_EMAIL" \
-    --data-urlencode "wc_reset_password=true" --data-urlencode "woocommerce-lost-password-nonce=$N" \
+    --data-urlencode "wc_reset_password=true" --data-urlencode "woocommerce-lost-password-nonce=$LPN" \
     --data-urlencode "_wp_http_referer=/mon-compte/mot-de-passe-perdu/"
   case "$HTTP_REDIRECT" in *reset-link-sent*) pass "Mot de passe perdu" "lien envoyé";;
     *) grep -q 'woocommerce-error' "$O" && fail "Mot de passe perdu" "erreur affichée" || pass "Mot de passe perdu" "HTTP $HTTP_CODE";; esac

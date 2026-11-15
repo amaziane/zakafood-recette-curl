@@ -31,7 +31,12 @@ checkout() {
   req "$J" GET "$(cb /commander/)" "$P"
   local nonce ship
   nonce=$($PY field "$P" woocommerce-checkout woocommerce-process-checkout-nonce)
-  [ -z "$nonce" ] && die "Page commande ($pm)" "formulaire absent (HTTP $HTTP_CODE ${HTTP_REDIRECT:+→ $HTTP_REDIRECT})"
+  [ -z "$nonce" ] && nonce=$(grep -o 'name="woocommerce-process-checkout-nonce"[^>]*value="[^"]*"' "$P" | head -1 | sed 's/.*value="\([^"]*\)"/\1/')
+  if [ -z "$nonce" ]; then
+    cp "$P" "$WORK/commander-$pm.html"
+    local msg; msg=$($PY notices "$P")
+    die "Page commande ($pm)" "formulaire absent (HTTP $HTTP_CODE) — message affiché : ${msg:-aucun} — page sauvée dans .work/commander-$pm.html"
+  fi
   ship=$($PY radio "$P" woocommerce-checkout 'shipping_method[0]')
   [ -z "$ship" ] && ship=$(grep -o 'name="shipping_method\[0\]"[^>]*value="[^"]*"' "$P" | head -1 | sed 's/.*value="\([^"]*\)"/\1/')
   grep -q "id=\"payment_method_$pm\"" "$P" && pass "Moyen de paiement proposé : $pm" || fail "Moyen de paiement proposé : $pm" "absent de la page commande"

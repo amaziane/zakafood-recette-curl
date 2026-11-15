@@ -11,12 +11,13 @@ VIA_AJAX=0
 
 if [ -n "$WP_ADMIN_PASSWORD" ]; then
   rm -f "$A"
-  req "$A" GET /wp-login.php "$P"
-  req "$A" POST /wp-login.php "$P" -b "wordpress_test_cookie=WP%20Cookie%20check" \
-    --data-urlencode "log=$WP_ADMIN_USER" --data-urlencode "pwd=$WP_ADMIN_PASSWORD" \
-    --data-urlencode "wp-submit=Se connecter" --data-urlencode "redirect_to=$BASE_URL/wp-admin/" --data-urlencode "testcookie=1"
+  # wp-login.php est masqué (snippet Sécurité) : l'équipe se connecte par /mon-compte/
+  req "$A" GET "$(cb /mon-compte/)" "$P"
+  ALN=$($PY field "$P" woocommerce-form-login woocommerce-login-nonce)
+  req "$A" POST /mon-compte/ "$P" --data-urlencode "username=$WP_ADMIN_USER" --data-urlencode "password=$WP_ADMIN_PASSWORD" \
+    --data-urlencode "woocommerce-login-nonce=$ALN" --data-urlencode "_wp_http_referer=/mon-compte/" --data-urlencode "login=Se connecter"
   if logged_in "$A"; then
-    pass "Connexion admin (wp-login)"
+    pass "Connexion admin (par Mon compte)"
     req "$A" GET "/wp-admin/admin.php?page=zk-clients" "$P"
     NONCE=$(grep -o '"ajax":"[^"]*","nonce":"[0-9a-f]*"' "$P" | head -1 | sed 's/.*"nonce":"\([0-9a-f]*\)"/\1/')
     if [ -n "$NONCE" ]; then
@@ -33,7 +34,7 @@ if [ -n "$WP_ADMIN_PASSWORD" ]; then
       fail "Écran Clients Zaka Food" "jeton AJAX introuvable sur admin.php?page=zk-clients"
     fi
   else
-    warn "Connexion admin (wp-login)" "échec (2FA, captcha ou SSO Jetpack ?) — bascule sur l'API"
+    warn "Connexion admin (par Mon compte)" "échec : vérifie WP_ADMIN_USER / WP_ADMIN_PASSWORD — bascule sur l'API"
   fi
 fi
 

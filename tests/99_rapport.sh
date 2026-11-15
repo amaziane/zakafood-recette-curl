@@ -18,7 +18,9 @@ if [ "$REST_CODE" = "200" ] && [ "${RUN_MAIL_BASE:--1}" != "-1" ]; then
   awk -F'\t' '{printf "  %s  %-7s  %-40s  %s\n", $2, $3, $4, $5}' "$WORK/emails-run.tsv"
   echo "  ($(wc -l < "$WORK/emails-run.tsv" | tr -d ' ') e-mails — liste dans .work/emails-run.tsv)"
 else
-  echo "  Journal SureMails inaccessible (HTTP $REST_CODE) : vérifie directement les boîtes."
+  echo "  Journal SureMails non lisible par l'API (HTTP $REST_CODE). E-mails attendus, à cocher dans Gmail (recherche « +zk$RUN_ID ») et dans la boîte admin :"
+  grep '^INFO	[^	]*	E-mail attendu' "$RESULTS" | awk -F'\t' '{sub(/^E-mail attendu : /,"",$3); printf "  [ ] %s\n", $3}'
+  echo "  Astuce : SureMails › Journaux d'e-mails dans l'admin liste aussi tout ce qui est parti."
 fi
 echo; echo "Adresses utilisées : contact=$CONTACT_EMAIL | newsletter=$NEWS_EMAIL | client=$CLIENT_EMAIL"
 grep -q '^FAIL' "$RESULTS" && exit 1 || exit 0
